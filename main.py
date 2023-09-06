@@ -10,7 +10,7 @@ client = pymongo.MongoClient('mongodb+srv://abhisharma71599:dora1emon@cluster0.m
 db = client['video_db']
 fs = GridFS(db)
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/', methods=['GET'])
 def download_and_show_path():
     if request.method == 'POST':
         youtube_url = request.form['youtube_url']
