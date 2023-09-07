@@ -1,14 +1,16 @@
-from flask import Flask, request, send_from_directory, Response 
+from flask import Flask, request, send_from_directory, Response
 from pytube import YouTube
-import pymongo
-from gridfs import GridFS
+import os
 
 app = Flask(__name__)
 
-# Initialize MongoDB and GridFS
-client = pymongo.MongoClient('mongodb+srv://abhisharma71599:dora1emon@cluster0.mzpomjy.mongodb.net/?retryWrites=true&w=majority')  # Replace with your MongoDB URI
-db = client['video_db']
-fs = GridFS(db)
+# Define the folder path where you want to store downloaded files
+DOWNLOAD_FOLDER = 'usdl'
+
+# Create the download folder if it doesn't exist
+if not os.path.exists(DOWNLOAD_FOLDER):
+    os.makedirs(DOWNLOAD_FOLDER)
+
 
 @app.route('/', methods=['GET'])
 def download_and_show_path():
@@ -23,30 +25,27 @@ def download_and_show_path():
         yt = YouTube(youtube_url)
         video_stream = yt.streams.filter(res=f"{quality}p", file_extension="mp4", progressive=True).first()
         
-        # Download the video
-        video_filename = "video.mp4"
+        video_filename = os.path.join(DOWNLOAD_FOLDER, f"{yt.video_id}.mp4")
         video_stream.download(filename=video_filename)
         
-        # Save the video to MongoDB GridFS
-        with open(video_filename, 'rb') as video_file:
-            fs.put(video_file, filename=yt.video_id)
         
-        return f"The video with ID {yt.video_id} is saved in MongoDB."
+        return f"The video with ID {yt.video_id} is saved in the folder."
 
 @app.route('/files/<video_id>')
 def view_file(video_id):
-    video = fs.find_one({"filename": video_id})
-    if video:
-        return video.read(), 200, {"Content-Type": "video/mp4"}
+    video_path = os.path.join(DOWNLOAD_FOLDER, f"{video_id}.mp4")
+    if os.path.exists(video_path):
+        return send_from_directory(DOWNLOAD_FOLDER, f"{video_id}.mp4")
     else:
         return "Video not found", 404
 
 @app.route('/dl/<video_id>')
 def download_video(video_id):
-    video = fs.find_one({"filename": video_id})
-    if video:
-        response = Response(video, content_type="video/mp4")
+    video_path = os.path.join(DOWNLOAD_FOLDER, f"{video_id}.mp4")
+    if os.path.exists(video_path):
+        response = send_from_directory(DOWNLOAD_FOLDER, f"{video_id}.mp4")
         response.headers["Content-Disposition"] = f"attachment; filename={video_id}.mp4"
+        os.remove(video_path)
         return response
     else:
         return "Video not found", 404
@@ -54,9 +53,4 @@ def download_video(video_id):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
-
-  
-  
-  
-  
-  
+      
