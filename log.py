@@ -1,4 +1,4 @@
-from flask import Flask, request, send_from_directory
+from flask import Flask, request, send_from_directory, Response 
 from pytube import YouTube
 import pymongo
 from gridfs import GridFS
@@ -34,17 +34,28 @@ def download_and_show_path():
         return f"The video with ID {yt.video_id} is saved in MongoDB."
 
 @app.route('/files/<video_id>')
-def download_file(video_id):
-    # Retrieve the video from MongoDB GridFS
+def view_file(video_id):
     video = fs.find_one({"filename": video_id})
     if video:
         return video.read(), 200, {"Content-Type": "video/mp4"}
     else:
         return "Video not found", 404
 
+@app.route('/dl/<video_id>')
+def download_video(video_id):
+    video = fs.find_one({"filename": video_id})
+    if video:
+        response = Response(video, content_type="video/mp4")
+        response.headers["Content-Disposition"] = f"attachment; filename={video_id}.mp4"
+        return response
+    else:
+        return "Video not found", 404
+      
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=80)
 
+  
   
   
   
