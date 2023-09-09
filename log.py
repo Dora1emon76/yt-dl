@@ -1,9 +1,11 @@
 from flask import Flask, request, send_from_directory, Response
 from pytube import YouTube
 import os
+from flask_cors import CORS
+ 
 
 app = Flask(__name__)
-
+CORS(app)
 # Define the folder path where you want to store downloaded files
 DOWNLOAD_FOLDER = 'usdl'
 
